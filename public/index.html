@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SportLab Operator Panel</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --panel: #111111;
+      --panel-2: #161616;
+      --line: #2b2b2b;
+      --line-strong: #4a4a4a;
+      --text: #f4f4f4;
+      --muted: #a5a5a5;
+      --soft: #d8d8d8;
+      --radius: 22px;
+      --shadow: 0 20px 60px rgba(0,0,0,.45);
+      --danger: #d4d4d4;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Inter, Arial, Helvetica, sans-serif; }
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.06), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(255,255,255,0.04), transparent 22%),
+        linear-gradient(180deg, #050505 0%, #0c0c0c 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .shell { max-width: 1440px; margin: 0 auto; }
+    .hidden { display: none !important; }
+    .grid-bg {
+      position: fixed; inset: 0; pointer-events: none; opacity: 0.09;
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.08) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .login-wrap { min-height: calc(100vh - 48px); display: grid; place-items: center; }
+    .login-card { width: 100%; max-width: 1120px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 22px; }
+    .hero, .card, .list-card, .profile-card, .stat-card, .history-card, .modal-card, .mini-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(4px);
+    }
+    .hero {
+      min-height: 620px; padding: 34px; display: flex; flex-direction: column; justify-content: space-between;
+      position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: "SPORTLAB"; position: absolute; right: -24px; bottom: 12px; font-size: 96px; font-weight: 900;
+      letter-spacing: 10px; color: rgba(255,255,255,0.03); transform: rotate(-90deg); transform-origin: bottom right;
+    }
+    .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+    .hero h1 { margin-top: 14px; font-size: clamp(38px, 5vw, 68px); line-height: .95; letter-spacing: -2px; max-width: 700px; }
+    .hero p { color: var(--soft); margin-top: 18px; max-width: 520px; font-size: 15px; line-height: 1.6; }
+    .hero-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 26px; }
+    .metric { padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,0.02); }
+    .metric strong { display: block; font-size: 28px; margin-bottom: 6px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .card { min-height: 620px; padding: 28px; display: flex; flex-direction: column; justify-content: center; }
+    .card h2 { font-size: 28px; letter-spacing: -1px; margin-bottom: 10px; }
+    .card p { color: var(--muted); margin-bottom: 22px; line-height: 1.5; font-size: 14px; }
+    .form { display: grid; gap: 14px; }
+    .field { display: grid; gap: 8px; }
+    label { color: var(--soft); font-size: 13px; letter-spacing: .3px; }
+    input, select {
+      width: 100%; background: #0d0d0d; border: 1px solid var(--line); color: var(--text);
+      border-radius: 16px; padding: 14px 16px; outline: none; transition: .2s ease; font-size: 14px;
+    }
+    input:focus, select:focus { border-color: var(--line-strong); box-shadow: 0 0 0 3px rgba(255,255,255,.06); }
+    .btn, .ghost-btn, .user-item, .tab, .history-toggle, .danger-btn, .icon-btn { transition: .2s ease; }
+    .btn {
+      cursor: pointer; border: 1px solid #f1f1f1; background: #f1f1f1; color: #090909; font-weight: 700;
+      border-radius: 16px; padding: 14px 18px; font-size: 14px; letter-spacing: .2px;
+    }
+    .btn:hover { transform: translateY(-1px); background: #ffffff; }
+    .ghost-btn, .history-toggle, .icon-btn {
+      cursor: pointer; border: 1px solid var(--line-strong); background: transparent; color: var(--text);
+      border-radius: 16px; padding: 13px 16px; font-size: 14px;
+    }
+    .ghost-btn:hover, .history-toggle:hover, .history-toggle.active, .icon-btn:hover {
+      border-color: #cfcfcf; background: rgba(255,255,255,.04);
+    }
+    .danger-btn {
+      cursor: pointer; border: 1px solid var(--line-strong); background: rgba(255,255,255,.02);
+      color: var(--danger); border-radius: 16px; padding: 13px 16px; font-size: 14px;
+    }
+    .danger-btn:hover { transform: translateY(-1px); background: rgba(255,255,255,.06); border-color: #d6d6d6; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .login-hint {
+      margin-top: 16px; color: var(--muted); font-size: 13px; line-height: 1.6;
+      border-top: 1px solid var(--line); padding-top: 16px;
+    }
+    .login-hint code, .inline-code {
+      background: rgba(255,255,255,.06); border: 1px solid var(--line); padding: 2px 8px;
+      border-radius: 999px; color: white;
+    }
+    .error { min-height: 20px; color: #d9d9d9; font-size: 13px; }
+    .app-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; padding: 10px 4px;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-mark {
+      width: 48px; height: 48px; border-radius: 16px; border: 1px solid var(--line-strong);
+      display: grid; place-items: center; font-weight: 900; background: rgba(255,255,255,.03);
+    }
+    .brand h3 { font-size: 24px; letter-spacing: -1px; }
+    .brand p { color: var(--muted); font-size: 13px; }
+    .operator-chip {
+      padding: 12px 16px; border-radius: 999px; background: rgba(255,255,255,.03);
+      border: 1px solid var(--line); color: var(--soft); font-size: 13px;
+    }
+    .dashboard { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+    .list-card, .profile-card { padding: 20px; }
+    .list-head, .profile-head, .mini-head {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px;
+    }
+    .list-head h4, .profile-head h4 { font-size: 22px; letter-spacing: -.7px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .search-box { margin-bottom: 14px; }
+    .db-pill-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .mini-card { padding: 14px; margin-bottom: 16px; }
+    .mini-card strong { display: block; margin-bottom: 6px; font-size: 14px; }
+    .mini-card p { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 999px;
+      border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--soft); font-size: 12px;
+    }
+    .user-list { display: grid; gap: 10px; max-height: 720px; overflow: auto; padding-right: 4px; }
+    .user-item {
+      cursor: pointer; display: grid; grid-template-columns: 58px 1fr auto; gap: 12px; align-items: center;
+      padding: 12px; border-radius: 18px; border: 1px solid var(--line); background: rgba(255,255,255,.02); text-align: left;
+    }
+    .user-item:hover, .user-item.active { border-color: var(--line-strong); background: rgba(255,255,255,.05); transform: translateY(-1px); }
+    .avatar, .avatar-lg {
+      background: linear-gradient(180deg, #2d2d2d, #0c0c0c); border: 1px solid var(--line-strong); overflow: hidden;
+      display: grid; place-items: center; color: white; font-weight: 800; text-transform: uppercase;
+    }
+    .avatar { width: 58px; height: 58px; border-radius: 16px; font-size: 18px; }
+    .avatar-lg { width: 108px; height: 108px; border-radius: 26px; font-size: 34px; flex-shrink: 0; }
+    .avatar img, .avatar-lg img { width: 100%; height: 100%; object-fit: cover; }
+    .user-info h5 { font-size: 15px; margin-bottom: 5px; }
+    .user-info p { color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .health-tag {
+      font-size: 11px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 999px;
+      color: var(--soft); white-space: nowrap;
+    }
+    .profile-top {
+      display: flex; gap: 18px; align-items: center; padding: 18px; border: 1px solid var(--line);
+      border-radius: 24px; background: rgba(255,255,255,.02); margin-bottom: 18px;
+    }
+    .profile-title h3 { font-size: 28px; letter-spacing: -1px; margin-bottom: 8px; }
+    .profile-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+    .badge {
+      font-size: 12px; padding: 8px 10px; border-radius: 999px; border: 1px solid var(--line-strong);
+      color: var(--soft); background: rgba(255,255,255,.03);
+    }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+    .stat-card { padding: 16px; }
+    .stat-card span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .stat-card strong { font-size: 28px; letter-spacing: -1px; }
+    .tabs { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+    .tab {
+      cursor: pointer; border: 1px solid var(--line); background: rgba(255,255,255,.02); color: var(--soft);
+      padding: 12px 14px; border-radius: 14px; font-size: 13px;
+    }
+    .tab.active, .tab:hover { border-color: var(--line-strong); background: rgba(255,255,255,.06); color: #ffffff; }
+    .section-title { margin-bottom: 14px; }
+    .section-title h5 { font-size: 18px; margin-bottom: 6px; }
+    .section-title p { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .photo-preview {
+      width: 100%; max-width: 220px; aspect-ratio: 4 / 5; border-radius: 24px; border: 1px solid var(--line);
+      overflow: hidden; background: rgba(255,255,255,.03); display: grid; place-items: center; color: var(--muted); margin-top: 6px;
+    }
+    .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+    .history-block { margin: 20px 0 22px; }
+    .history-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .history-card { padding: 16px; margin-bottom: 12px; }
+    .history-card h6 { font-size: 16px; margin-bottom: 6px; }
+    .history-card p { color: var(--muted); font-size: 13px; margin-bottom: 12px; line-height: 1.5; }
+    .history-list { list-style: none; display: grid; gap: 10px; }
+    .history-list li {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px;
+      border-radius: 16px; border: 1px solid var(--line); background: rgba(255,255,255,.02); color: var(--soft); font-size: 14px;
+    }
+    .history-list li span:last-child { font-weight: 700; color: var(--text); white-space: nowrap; }
+    .history-empty {
+      border: 1px dashed var(--line-strong); border-radius: 18px; padding: 14px; color: var(--muted);
+      font-size: 13px; text-align: center; background: rgba(255,255,255,.02);
+    }
+    .empty, .loading {
+      border: 1px dashed var(--line-strong); border-radius: 20px; padding: 24px; text-align: center;
+      color: var(--muted); background: rgba(255,255,255,.02);
+    }
+    .toast {
+      position: fixed; right: 24px; bottom: 24px; z-index: 40; padding: 14px 16px; border-radius: 16px;
+      background: #f5f5f5; color: #0a0a0a; font-weight: 700; box-shadow: var(--shadow);
+      opacity: 0; transform: translateY(10px); pointer-events: none; transition: .25s ease;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.72); backdrop-filter: blur(4px); display: flex;
+      align-items: center; justify-content: center; padding: 24px; z-index: 35;
+    }
+    .modal-card { width: 100%; max-width: 760px; padding: 24px; }
+    .modal-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+    .modal-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .modal-top h4 { font-size: 24px; letter-spacing: -1px; }
+    .modal-note { color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 18px; }
+    .helper { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 6px; }
+    @media (max-width: 1120px) {
+      .login-card, .dashboard { grid-template-columns: 1fr; }
+      .hero, .card { min-height: auto; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 700px) {
+      body { padding: 14px; }
+      .hero { padding: 22px; }
+      .card, .list-card, .profile-card, .history-card, .mini-card, .modal-card { padding: 16px; }
+      .row-2, .stats-grid, .hero-metrics { grid-template-columns: 1fr; }
+      .profile-top, .modal-top, .app-header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="shell">
+    <section id="loginScreen" class="login-wrap">
+      <div class="login-card">
+        <div class="hero">
+          <div>
+            <div class="eyebrow">Operator access / sportlab</div>
+            <h1>Панель оператора оценки здоровья</h1>
+            <p>
+              Рабочая версия с сервером и PostgreSQL. Оператор входит по логину и паролю,
+              создаёт пользователей, редактирует карточки и хранит историю замеров уже в SQL-базе,
+              а не в локальном браузерном хранилище.
+            </p>
+            <div class="hero-metrics">
+              <div class="metric"><strong>01</strong><span>Операторский вход</span></div>
+              <div class="metric"><strong>02</strong><span>PostgreSQL + API</span></div>
+              <div class="metric"><strong>03</strong><span>История замеров</span></div>
+            </div>
+          </div>
+          <div class="eyebrow">health management / student profile / sportlab ui</div>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">Авторизация</div>
+          <h2>Вход только для оператора</h2>
+          <p>
+            После входа откроется список пользователей, форма редактирования и создание новых карточек.
+          </p>
+
+          <form id="loginForm" class="form">
+            <div class="field">
+              <label for="login">Логин</label>
+              <input id="login" type="text" placeholder="Введите логин" value="operator" />
+            </div>
+            <div class="field">
+              <label for="password">Пароль</label>
+              <input id="password" type="password" placeholder="Введите пароль" value="sportlab123" />
+            </div>
+            <div class="error" id="loginError"></div>
+            <button class="btn" type="submit">Войти в систему</button>
+          </form>
+
+          <div class="login-hint">
+            Стартовый логин можно создать через seed-скрипт.<br />
+            По умолчанию в проекте используются: <code>operator</code> / <code>sportlab123</code>.<br />
+            Пользователи и история замеров хранятся в <span class="inline-code">PostgreSQL</span>.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="appScreen" class="hidden">
+      <header class="app-header">
+        <div class="brand">
+          <div class="brand-mark">SL</div>
+          <div>
+            <h3>SportLab Operator</h3>
+            <p>Панель назначения пользовательских данных</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <div class="operator-chip" id="operatorName">Оператор: operator</div>
+          <div class="operator-chip" id="dbStatus">База: PostgreSQL</div>
+          <button class="ghost-btn" id="logoutBtn">Выйти</button>
+        </div>
+      </header>
+
+      <main class="dashboard">
+        <aside class="list-card">
+          <div class="list-head">
+            <div>
+              <h4>Пользователи</h4>
+              <div class="muted" id="userCount"></div>
+            </div>
+            <button class="btn" id="createUserBtn" type="button">+ Новый пользователь</button>
+          </div>
+
+          <div class="mini-card">
+            <div class="mini-head"><strong>База данных</strong></div>
+            <p>
+              Это уже серверная версия. Все данные хранятся в PostgreSQL, а интерфейс работает через API.
+            </p>
+            <div class="db-pill-row">
+              <span class="pill" id="dbUsersCount">0 записей</span>
+              <span class="pill">postgresql</span>
+              <span class="pill">operator only</span>
+            </div>
+          </div>
+
+          <div class="search-box">
+            <input id="searchInput" type="text" placeholder="Поиск по ФИО или группе" />
+          </div>
+
+          <div class="user-list" id="userList"></div>
+        </aside>
+
+        <section class="profile-card">
+          <div class="profile-head">
+            <div>
+              <h4>Карточка пользователя</h4>
+              <div class="muted">Редактирование профиля, показателей и истории значений</div>
+            </div>
+          </div>
+
+          <div id="profileContent"></div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <div class="modal-overlay hidden" id="createUserModal">
+    <div class="modal-card">
+      <div class="modal-top">
+        <div>
+          <div class="eyebrow">operator action</div>
+          <h4>Создание нового пользователя</h4>
+        </div>
+        <button class="icon-btn" type="button" id="closeCreateUserModal">Закрыть</button>
+      </div>
+      <p class="modal-note">
+        Новый пользователь сразу попадёт в PostgreSQL. Индекс здоровья посчитается автоматически,
+        если заполнить рост и вес.
+      </p>
+
+      <form id="createUserForm" class="form">
+        <div class="row-2">
+          <div class="field">
+            <label for="newFullName">ФИО</label>
+            <input id="newFullName" name="fullName" type="text" placeholder="Например: Смирнов Алексей Игоревич" required />
+          </div>
+          <div class="field">
+            <label for="newGroup">Группа</label>
+            <input id="newGroup" name="group" type="text" placeholder="Например: ИС-22" required />
+          </div>
+        </div>
+
+        <div class="row-2">
+          <div class="field">
+            <label for="newWeight">Вес, кг</label>
+            <input id="newWeight" name="weight" type="number" min="1" step="0.1" placeholder="72" />
+          </div>
+          <div class="field">
+            <label for="newHeight">Рост, см</label>
+            <input id="newHeight" name="height" type="number" min="1" step="0.1" placeholder="180" />
+          </div>
+        </div>
+
+        <div class="row-2">
+          <div class="field">
+            <label for="newHealthIndex">Индекс здоровья</label>
+            <input id="newHealthIndex" type="text" readonly placeholder="Рассчитается автоматически" />
+          </div>
+          <div class="field">
+            <label for="newHealthGroup">Группа здоровья</label>
+            <select id="newHealthGroup" name="healthGroup">
+              <option value="Основная">Основная</option>
+              <option value="Подготовительная">Подготовительная</option>
+              <option value="Специальная">Специальная</option>
+              <option value="ЛФК">ЛФК</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="newPhoto">Фотография (URL)</label>
+          <input id="newPhoto" name="photo" type="text" placeholder="Вставьте ссылку на фото" />
+          <div class="helper">Можно оставить пустым — тогда будет отображаться аватар с инициалами.</div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn" type="submit">Создать пользователя</button>
+          <button class="ghost-btn" type="button" id="resetCreateUserForm">Очистить поля</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Сохранено</div>
+
+  <script>
+    const API_BASE = '';
+    const AUTH_KEY = 'sportlab_operator_auth_v1';
+
+    let authState = loadAuthState();
+    let currentOperator = authState?.operator || null;
+    let authToken = authState?.token || null;
+    let usersDb = [];
+    let selectedUserId = null;
+    let activeHistoryPanels = { height: false, weight: false, bmi: false };
+
+    const loginScreen = document.getElementById('loginScreen');
+    const appScreen = document.getElementById('appScreen');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+    const userList = document.getElementById('userList');
+    const profileContent = document.getElementById('profileContent');
+    const searchInput = document.getElementById('searchInput');
+    const userCount = document.getElementById('userCount');
+    const toast = document.getElementById('toast');
+    const operatorName = document.getElementById('operatorName');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const dbStatus = document.getElementById('dbStatus');
+    const dbUsersCount = document.getElementById('dbUsersCount');
+    const createUserBtn = document.getElementById('createUserBtn');
+    const createUserModal = document.getElementById('createUserModal');
+    const closeCreateUserModal = document.getElementById('closeCreateUserModal');
+    const createUserForm = document.getElementById('createUserForm');
+    const resetCreateUserForm = document.getElementById('resetCreateUserForm');
+    const newWeightInput = document.getElementById('newWeight');
+    const newHeightInput = document.getElementById('newHeight');
+    const newHealthIndexInput = document.getElementById('newHealthIndex');
+
+    function loadAuthState() {
+      try {
+        const raw = localStorage.getItem(AUTH_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function saveAuthState(token, operator) {
+      localStorage.setItem(AUTH_KEY, JSON.stringify({ token, operator }));
+    }
+
+    function clearAuthState() {
+      localStorage.removeItem(AUTH_KEY);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function calculateHealthIndex(weight, height) {
+      const w = Number(weight);
+      const h = Number(height);
+      if (!w || !h) return '';
+      const meters = h / 100;
+      const bmi = w / (meters * meters);
+      return bmi.toFixed(1);
+    }
+
+    function resolveHealthState(index) {
+      const value = Number(index);
+      if (!value) return 'Не определено';
+      if (value < 18.5) return 'Ниже нормы';
+      if (value < 25) return 'Норма';
+      if (value < 30) return 'Выше нормы';
+      return 'Риск превышения';
+    }
+
+    function initials(name) {
+      return (name || '?')
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part[0])
+        .join('');
+    }
+
+    function renderAvatar(photo, name, large = false) {
+      const cls = large ? 'avatar-lg' : 'avatar';
+      const safeName = escapeHtml(name);
+      const fallback = escapeHtml(initials(name));
+      const safePhoto = escapeHtml(photo || '');
+      if (safePhoto.trim()) {
+        return `<div class="${cls}"><img src="${safePhoto}" alt="${safeName}" onerror="this.parentElement.innerHTML='${fallback}'" /></div>`;
+      }
+      return `<div class="${cls}">${fallback}</div>`;
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    function pluralizeUsers(count) {
+      if (count % 10 === 1 && count % 100 !== 11) return 'пользователь';
+      if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'пользователя';
+      return 'пользователей';
+    }
+
+    function getSelectedUser() {
+      return usersDb.find(user => user.id === selectedUserId) || null;
+    }
+
+    function normalizeMetric(value) {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+    }
+
+    async function apiRequest(url, options = {}) {
+      const response = await fetch(`${API_BASE}${url}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          ...(options.headers || {})
+        }
+      });
+
+      if (response.status === 204) return null;
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = data?.error || 'Ошибка запроса';
+        if (response.status === 401) {
+          forceLogout(message);
+        }
+        throw new Error(message);
+      }
+
+      return data;
+    }
+
+    async function refreshUsers() {
+      const data = await apiRequest('/api/users');
+      usersDb = data.users || [];
+      if (!usersDb.length) {
+        selectedUserId = null;
+      } else if (!usersDb.some(user => user.id === selectedUserId)) {
+        selectedUserId = usersDb[0].id;
+      }
+      renderUserList();
+      renderProfile();
+      refreshDbCounters();
+    }
+
+    function refreshDbCounters() {
+      dbStatus.textContent = `База: PostgreSQL / ${usersDb.length} записей`;
+      dbUsersCount.textContent = `${usersDb.length} ${pluralizeUsers(usersDb.length)}`;
+    }
+
+    function openCreateUserModal() {
+      createUserModal.classList.remove('hidden');
+      createUserForm.reset();
+      newHealthIndexInput.value = '';
+      setTimeout(() => document.getElementById('newFullName').focus(), 10);
+    }
+
+    function closeCreateUserModalFn() {
+      createUserModal.classList.add('hidden');
+    }
+
+    function renderHistoryList(items, unit) {
+      if (!items?.length) {
+        return `<div class="history-empty">Пока нет сохранённых значений</div>`;
+      }
+
+      const reversed = items.slice().reverse();
+      return `
+        <ul class="history-list">
+          ${reversed.map((value, index) => `
+            <li>
+              <span>${index === 0 ? 'Последнее сохранённое значение' : `Предыдущее значение #${reversed.length - index}`}</span>
+              <span>${escapeHtml(value)}${unit}</span>
+            </li>
+          `).join('')}
+        </ul>
+      `;
+    }
+
+    function renderUserList() {
+      const query = searchInput.value.trim().toLowerCase();
+      const filtered = usersDb.filter(user => {
+        return [user.fullName, user.group, user.healthGroup]
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
+      });
+
+      userCount.textContent = `Всего пользователей: ${filtered.length}`;
+
+      if (!filtered.length) {
+        userList.innerHTML = `<div class="empty">Ничего не найдено</div>`;
+        return;
+      }
+
+      userList.innerHTML = filtered.map(user => {
+        const active = user.id === selectedUserId ? 'active' : '';
+        return `
+          <button class="user-item ${active}" data-id="${user.id}" type="button">
+            ${renderAvatar(user.photo, user.fullName)}
+            <div class="user-info">
+              <h5>${escapeHtml(user.fullName)}</h5>
+              <p>${escapeHtml(user.group)} · Индекс: ${escapeHtml(user.healthIndex || '—')}<br>${escapeHtml(user.healthGroup || 'Группа не указана')}</p>
+            </div>
+            <div class="health-tag">${escapeHtml(resolveHealthState(user.healthIndex))}</div>
+          </button>
+        `;
+      }).join('');
+
+      userList.querySelectorAll('.user-item').forEach(button => {
+        button.addEventListener('click', () => {
+          selectedUserId = Number(button.dataset.id);
+          activeHistoryPanels = { height: false, weight: false, bmi: false };
+          renderUserList();
+          renderProfile();
+        });
+      });
+    }
+
+    function renderProfile() {
+      const user = getSelectedUser();
+      if (!user) {
+        profileContent.innerHTML = usersDb.length
+          ? `<div class="empty">Пользователь не выбран</div>`
+          : `<div class="empty">Пока нет пользователей. Нажми «Новый пользователь»</div>`;
+        return;
+      }
+
+      const healthState = resolveHealthState(user.healthIndex);
+      const safeName = escapeHtml(user.fullName || '');
+      const safeGroup = escapeHtml(user.group || '');
+      const safePhoto = escapeHtml(user.photo || '');
+
+      profileContent.innerHTML = `
+        <div class="profile-top">
+          ${renderAvatar(user.photo, user.fullName, true)}
+          <div class="profile-title">
+            <h3>${safeName}</h3>
+            <div class="profile-meta">
+              <span class="badge">Группа: ${safeGroup || '—'}</span>
+              <span class="badge">Группа здоровья: ${escapeHtml(user.healthGroup || '—')}</span>
+              <span class="badge">Состояние: ${escapeHtml(healthState)}</span>
+              <span class="badge">ID: ${escapeHtml(user.id)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card"><span>Рост</span><strong>${escapeHtml(user.height || '—')} см</strong></div>
+          <div class="stat-card"><span>Вес</span><strong>${escapeHtml(user.weight || '—')} кг</strong></div>
+          <div class="stat-card"><span>Индекс здоровья</span><strong>${escapeHtml(user.healthIndex || '—')}</strong></div>
+          <div class="stat-card"><span>Статус</span><strong style="font-size:22px;">${escapeHtml(healthState)}</strong></div>
+        </div>
+
+        <div class="history-block">
+          <div class="section-title">
+            <h5>История значений пользователя</h5>
+            <p>Здесь отдельными кнопками открываются все сохранённые росты, веса и ИМТ только для выбранного пользователя.</p>
+          </div>
+
+          <div class="history-actions">
+            <button class="history-toggle ${activeHistoryPanels.height ? 'active' : ''}" type="button" data-panel="height">Росты (${user.heightHistory.length})</button>
+            <button class="history-toggle ${activeHistoryPanels.weight ? 'active' : ''}" type="button" data-panel="weight">Веса (${user.weightHistory.length})</button>
+            <button class="history-toggle ${activeHistoryPanels.bmi ? 'active' : ''}" type="button" data-panel="bmi">ИМТ (${user.bmiHistory.length})</button>
+          </div>
+
+          ${activeHistoryPanels.height ? `<div class="history-card"><h6>Список всех ростов</h6><p>Все значения роста, которые оператор сохранял для этого пользователя.</p>${renderHistoryList(user.heightHistory, ' см')}</div>` : ''}
+          ${activeHistoryPanels.weight ? `<div class="history-card"><h6>Список всех весов</h6><p>Все значения веса, которые оператор сохранял для этого пользователя.</p>${renderHistoryList(user.weightHistory, ' кг')}</div>` : ''}
+          ${activeHistoryPanels.bmi ? `<div class="history-card"><h6>Список всех ИМТ</h6><p>Все автоматически рассчитанные индексы массы тела для этого пользователя.</p>${renderHistoryList(user.bmiHistory, '')}</div>` : ''}
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" type="button">Основные данные</button>
+          <button class="tab" type="button" disabled>Доп. параметры позже</button>
+        </div>
+
+        <div class="section-title">
+          <h5>Назначение данных пользователя</h5>
+          <p>Оператор может отредактировать карточку. Индекс здоровья рассчитывается автоматически как ИМТ на основе роста и веса.</p>
+        </div>
+
+        <form id="profileForm" class="form">
+          <div class="row-2">
+            <div class="field"><label for="fullName">ФИО</label><input id="fullName" name="fullName" type="text" value="${safeName}" /></div>
+            <div class="field"><label for="group">Группа</label><input id="group" name="group" type="text" value="${safeGroup}" /></div>
+          </div>
+
+          <div class="row-2">
+            <div class="field"><label for="weight">Вес, кг</label><input id="weight" name="weight" type="number" min="1" step="0.1" value="${escapeHtml(user.weight || '')}" /></div>
+            <div class="field"><label for="height">Рост, см</label><input id="height" name="height" type="number" min="1" step="0.1" value="${escapeHtml(user.height || '')}" /></div>
+          </div>
+
+          <div class="row-2">
+            <div class="field"><label for="healthIndex">Индекс здоровья</label><input id="healthIndex" name="healthIndex" type="text" value="${escapeHtml(user.healthIndex || '')}" readonly /></div>
+            <div class="field">
+              <label for="healthGroup">Группа здоровья</label>
+              <select id="healthGroup" name="healthGroup">
+                <option value="Основная" ${user.healthGroup === 'Основная' ? 'selected' : ''}>Основная</option>
+                <option value="Подготовительная" ${user.healthGroup === 'Подготовительная' ? 'selected' : ''}>Подготовительная</option>
+                <option value="Специальная" ${user.healthGroup === 'Специальная' ? 'selected' : ''}>Специальная</option>
+                <option value="ЛФК" ${user.healthGroup === 'ЛФК' ? 'selected' : ''}>ЛФК</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field"><label for="photo">Фотография (URL)</label><input id="photo" name="photo" type="text" placeholder="Вставьте ссылку на фото" value="${safePhoto}" /></div>
+
+          <div class="photo-preview" id="photoPreview">
+            ${safePhoto ? `<img src="${safePhoto}" alt="Фото пользователя" onerror="this.parentElement.innerHTML='Предпросмотр недоступен'" />` : 'Предпросмотр фотографии'}
+          </div>
+
+          <div class="actions">
+            <button class="btn" type="submit">Сохранить изменения</button>
+            <button class="ghost-btn" type="button" id="resetBtn">Сбросить</button>
+            <button class="danger-btn" type="button" id="deleteBtn">Удалить пользователя</button>
+          </div>
+        </form>
+      `;
+
+      const form = document.getElementById('profileForm');
+      const weightInput = document.getElementById('weight');
+      const heightInput = document.getElementById('height');
+      const healthIndexInput = document.getElementById('healthIndex');
+      const photoInput = document.getElementById('photo');
+      const photoPreview = document.getElementById('photoPreview');
+      const resetBtn = document.getElementById('resetBtn');
+      const deleteBtn = document.getElementById('deleteBtn');
+      const historyButtons = profileContent.querySelectorAll('.history-toggle');
+
+      function refreshComputedFields() {
+        healthIndexInput.value = calculateHealthIndex(weightInput.value, heightInput.value);
+      }
+
+      function refreshPhotoPreview() {
+        const url = photoInput.value.trim();
+        if (!url) {
+          photoPreview.innerHTML = 'Предпросмотр фотографии';
+          return;
+        }
+        photoPreview.innerHTML = `<img src="${escapeHtml(url)}" alt="Фото пользователя" onerror="this.parentElement.innerHTML='Предпросмотр недоступен'" />`;
+      }
+
+      historyButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const panel = button.dataset.panel;
+          activeHistoryPanels[panel] = !activeHistoryPanels[panel];
+          renderProfile();
+        });
+      });
+
+      weightInput.addEventListener('input', refreshComputedFields);
+      heightInput.addEventListener('input', refreshComputedFields);
+      photoInput.addEventListener('input', refreshPhotoPreview);
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        try {
+          const payload = {
+            fullName: form.fullName.value.trim(),
+            group: form.group.value.trim(),
+            weight: normalizeMetric(form.weight.value),
+            height: normalizeMetric(form.height.value),
+            healthGroup: form.healthGroup.value,
+            photo: form.photo.value.trim()
+          };
+
+          const data = await apiRequest(`/api/users/${user.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+
+          usersDb = usersDb.map(item => item.id === user.id ? data.user : item);
+          renderUserList();
+          renderProfile();
+          refreshDbCounters();
+          showToast('Профиль пользователя сохранён');
+        } catch (error) {
+          showToast(error.message);
+        }
+      });
+
+      resetBtn.addEventListener('click', () => renderProfile());
+
+      deleteBtn.addEventListener('click', async () => {
+        const isConfirmed = confirm(`Удалить пользователя «${user.fullName}» из базы?`);
+        if (!isConfirmed) return;
+
+        try {
+          await apiRequest(`/api/users/${user.id}`, { method: 'DELETE' });
+          usersDb = usersDb.filter(item => item.id !== user.id);
+          selectedUserId = usersDb[0]?.id ?? null;
+          activeHistoryPanels = { height: false, weight: false, bmi: false };
+          renderUserList();
+          renderProfile();
+          refreshDbCounters();
+          showToast('Пользователь удалён из базы');
+        } catch (error) {
+          showToast(error.message);
+        }
+      });
+    }
+
+    function refreshCreateUserComputedIndex() {
+      newHealthIndexInput.value = calculateHealthIndex(newWeightInput.value, newHeightInput.value);
+    }
+
+    function forceLogout(message) {
+      authToken = null;
+      currentOperator = null;
+      usersDb = [];
+      selectedUserId = null;
+      activeHistoryPanels = { height: false, weight: false, bmi: false };
+      clearAuthState();
+      closeCreateUserModalFn();
+      loginScreen.classList.remove('hidden');
+      appScreen.classList.add('hidden');
+      if (message) loginError.textContent = message;
+    }
+
+    async function enterApp() {
+      operatorName.textContent = `Оператор: ${currentOperator?.login || 'operator'}`;
+      loginScreen.classList.add('hidden');
+      appScreen.classList.remove('hidden');
+      userList.innerHTML = `<div class="loading">Загрузка пользователей...</div>`;
+      profileContent.innerHTML = `<div class="loading">Подключаемся к серверу...</div>`;
+      await refreshUsers();
+    }
+
+    newWeightInput.addEventListener('input', refreshCreateUserComputedIndex);
+    newHeightInput.addEventListener('input', refreshCreateUserComputedIndex);
+
+    createUserBtn.addEventListener('click', openCreateUserModal);
+    closeCreateUserModal.addEventListener('click', closeCreateUserModalFn);
+    resetCreateUserForm.addEventListener('click', () => {
+      createUserForm.reset();
+      newHealthIndexInput.value = '';
+    });
+
+    createUserModal.addEventListener('click', (event) => {
+      if (event.target === createUserModal) closeCreateUserModalFn();
+    });
+
+    createUserForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      try {
+        const payload = {
+          fullName: createUserForm.fullName.value.trim(),
+          group: createUserForm.group.value.trim(),
+          weight: normalizeMetric(createUserForm.weight.value),
+          height: normalizeMetric(createUserForm.height.value),
+          healthGroup: createUserForm.healthGroup.value,
+          photo: createUserForm.photo.value.trim()
+        };
+
+        const data = await apiRequest('/api/users', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        usersDb.unshift(data.user);
+        selectedUserId = data.user.id;
+        activeHistoryPanels = { height: false, weight: false, bmi: false };
+        renderUserList();
+        renderProfile();
+        refreshDbCounters();
+        closeCreateUserModalFn();
+        showToast('Новый пользователь добавлен в базу');
+      } catch (error) {
+        showToast(error.message);
+      }
+    });
+
+    loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      loginError.textContent = '';
+
+      try {
+        const login = document.getElementById('login').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const data = await apiRequest('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ login, password })
+        });
+
+        authToken = data.token;
+        currentOperator = data.operator;
+        saveAuthState(authToken, currentOperator);
+        await enterApp();
+        showToast('Вход выполнен');
+      } catch (error) {
+        loginError.textContent = error.message;
+      }
+    });
+
+    searchInput.addEventListener('input', renderUserList);
+
+    logoutBtn.addEventListener('click', () => {
+      forceLogout();
+      document.getElementById('login').value = 'operator';
+      document.getElementById('password').value = 'sportlab123';
+      showToast('Вы вышли из системы');
+    });
+
+    (async function bootstrap() {
+      if (!authToken || !currentOperator) return;
+      try {
+        await enterApp();
+      } catch (error) {
+        forceLogout('Сессия истекла. Войдите заново.');
+      }
+    })();
+  </script>
+</body>
+</html>

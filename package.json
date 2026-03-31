@@ -1,0 +1,17 @@
+{
+  "name": "sportlab-operator-postgres-app",
+  "version": "1.0.0",
+  "description": "SportLab operator panel with PostgreSQL backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed:operator": "node scripts/seed-operator.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "pg": "^8.16.3"
+  }
+}
